@@ -33,9 +33,6 @@ def main():
             'frontend_url': frontend_url,
         }
 
-        if registry_auth == "True" or registry_auth == "true":
-            g.session.auth = (os.environ['REGISTRY_USER'], os.environ['REGISTRY_PW'])
-
     print("Registry URL: " + registry_url)
     print("Frontend URL: " + frontend_url)
 

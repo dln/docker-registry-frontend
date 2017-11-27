@@ -68,12 +68,28 @@ def registry_request(path, method="GET"):
     try:
         response = getattr(g.session, method.lower())(api_url, verify=g.config.get('registry_verify_ssl'))
         if response.status_code == 401:
-            raise Exception('Return Code was 401, Authentication required / not successful!')
-        else:
-            return response
+            update_token(response.headers['Www-Authenticate'])
+            response = getattr(g.session, method.lower())(api_url, verify=g.config.get('registry_verify_ssl'))
+        return response
     except RequestException:
         raise Exception("Problem during docker registry connection")
 
+def update_token(header):
+    realm = find_between(header, 'realm="', '"')
+    service = find_between(header, 'service="', '"')
+    scope = find_between(header, 'scope="', '"')
+    data = {"scope": scope, "service": service, "account": os.environ['REGISTRY_USER']}
+    r = g.session.post(realm, data=data, auth=(os.environ['REGISTRY_USER'], os.environ['REGISTRY_PW']), verify=g.config.get('registry_verify_ssl'))
+    data = r.json()
+    g.session.headers.update({'Authorization':'Bearer ' + data['token']})
+
+def find_between(s, first, last):
+    try:
+        start = s.index(first) + len(first)
+        end = s.index(last, start)
+        return s[start:end]
+    except ValueError:
+        return ""
 
 def frontend_template(template, **kwargs):
     '''
